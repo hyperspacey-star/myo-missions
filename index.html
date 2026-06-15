@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Myo-Missions</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+            background-color: #87CEEB; /* Sky Blue */
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 90vh;
+            color: #333;
+        }
+        #game-box {
+            background-color: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 600px;
+        }
+        h1 { color: #FF4500; font-size: 32px; }
+        p { font-size: 22px; line-height: 1.5; }
+        button {
+            background-color: #32CD32; /* Lime Green */
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+            cursor: pointer;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+            width: 100%;
+        }
+        button:active { transform: scale(0.95); }
+        .timer-text { font-size: 48px; color: #FF0000; font-weight: bold; margin: 20px 0; display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="game-box">
+        <h1 id="title">Myo-Missions!</h1>
+        <p id="description">Are you ready to train your tongue muscles?</p>
+        <div id="timer" class="timer-text">120</div>
+        <button id="action-btn" onclick="startGame()">Start Game</button>
+    </div>
+
+    <script>
+        const missions = [
+            { id: "intro", title: "Welcome!", text: "Listen to the instructions.", type: "info" },
+            { id: "mission_1", title: "Mission 1: Magic Brush", text: "Foam brush time!", type: "reps", reps: 3 },
+            { id: "mission_2", title: "Mission 2: Power Suction", text: "Suction your tongue to the roof of your mouth.", type: "timer", time: 120 },
+            { id: "mission_3", title: "Mission 3: Tiny Oyster", text: "Open and close touching back molars.", type: "reps", reps: 10 },
+            { id: "mission_4", title: "Mission 4: Shape Shifter", text: "Fat -> Skinny -> Fat -> Taco!", type: "reps", reps: 10 },
+            { id: "mission_5", title: "Mission 5: Perfect Bowl", text: "Make a bowl behind your lower teeth.", type: "reps_timer", reps: 10, time: 3 },
+            { id: "mission_6", title: "Mission 6: Water Trap", text: "Spray water, suction up, hold for 3 seconds.", type: "reps_timer", reps: 10, time: 3 },
+            { id: "mission_7", title: "Mission 7: Floating Ball", text: "Blow out mouth to float the ball.", type: "reps", reps: 10 },
+            { id: "mission_8", title: "Final Mission: Parents Delight", text: "Stick between lips. The active game is over, leave it in for 30 minutes!", type: "info" }
+        ];
+
+        let currentMission = 0;
+        let currentRep = 1;
+        let isTimerRunning = false;
+        let audioPlayer = new Audio();
+
+        const titleEl = document.getElementById("title");
+        const descEl = document.getElementById("description");
+        const btnEl = document.getElementById("action-btn");
+        const timerEl = document.getElementById("timer");
+
+        function playAudio(filename) {
+            audioPlayer.src = `myo_audio/${filename}.mp3`;
+            audioPlayer.play();
+        }
+
+        function startGame() {
+            currentMission = 0;
+            loadMission();
+        }
+
+        function loadMission() {
+            if (currentMission >= missions.length) {
+                titleEl.innerText = "Game Over!";
+                descEl.innerText = "Amazing job today!";
+                btnEl.style.display = "none";
+                timerEl.style.display = "none";
+                return;
+            }
+
+            let m = missions[currentMission];
+            titleEl.innerText = m.title;
+            descEl.innerText = m.text;
+            timerEl.style.display = "none";
+            currentRep = 1;
+            
+            playAudio(m.id);
+
+            if (m.type === "info") {
+                btnEl.innerText = "Next Mission";
+                btnEl.onclick = nextMission;
+            } else if (m.type === "reps") {
+                updateRepButton();
+            } else if (m.type === "timer") {
+                btnEl.innerText = `Start ${m.time}s Timer`;
+                btnEl.onclick = () => startTimer(m.time, nextMission);
+            } else if (m.type === "reps_timer") {
+                updateRepTimerButton();
+            }
+        }
+
+        function nextMission() {
+            currentMission++;
+            loadMission();
+        }
+
+        function updateRepButton() {
+            let m = missions[currentMission];
+            btnEl.innerText = `Done! (Rep ${currentRep} of ${m.reps})`;
+            btnEl.onclick = () => {
+                playAudio("ding");
+                currentRep++;
+                if (currentRep > m.reps) {
+                    nextMission();
+                } else {
+                    updateRepButton();
+                }
+            };
+        }
+
+        function updateRepTimerButton() {
+            let m = missions[currentMission];
+            btnEl.innerText = `Start 3s Hold (Rep ${currentRep} of ${m.reps})`;
+            btnEl.onclick = () => {
+                startTimer(m.time, () => {
+                    currentRep++;
+                    if (currentRep > m.reps) {
+                        nextMission();
+                    } else {
+                        updateRepTimerButton();
+                    }
+                });
+            };
+        }
+
+        function startTimer(seconds, callback) {
+            if (isTimerRunning) return;
+            isTimerRunning = true;
+            btnEl.style.display = "none";
+            timerEl.style.display = "block";
+            timerEl.innerText = seconds;
+
+            let timeLeft = seconds;
+            let interval = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    isTimerRunning = false;
+                    playAudio("timer_done");
+                    btnEl.style.display = "block";
+                    timerEl.style.display = "none";
+                    callback();
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
