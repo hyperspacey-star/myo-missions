@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
-            background-color: #87CEEB; /* Sky Blue */
+            background-color: #87CEEB;
             text-align: center;
             margin: 0;
             padding: 20px;
@@ -29,7 +29,7 @@
         h1 { color: #FF4500; font-size: 32px; }
         p { font-size: 22px; line-height: 1.5; }
         button {
-            background-color: #32CD32; /* Lime Green */
+            background-color: #32CD32;
             color: white;
             border: none;
             border-radius: 15px;
@@ -42,7 +42,7 @@
             width: 100%;
         }
         button:active { transform: scale(0.95); }
-        .timer-text { font-size: 48px; color: #FF0000; font-weight: bold; margin: 20px 0; display: none; }
+        .timer-text { font-size: 64px; color: #FF0000; font-weight: bold; margin: 20px 0; display: none; }
     </style>
 </head>
 <body>
@@ -50,25 +50,25 @@
     <div id="game-box">
         <h1 id="title">Myo-Missions!</h1>
         <p id="description">Are you ready to train your tongue muscles?</p>
-        <div id="timer" class="timer-text">120</div>
+        <div id="timer" class="timer-text"></div>
         <button id="action-btn" onclick="startGame()">Start Game</button>
     </div>
 
     <script>
+        // Note the new "delay" property (in milliseconds) to control how fast the reps go!
         const missions = [
             { id: "intro", title: "Welcome!", text: "Listen to the instructions.", type: "info" },
-            { id: "mission_1", title: "Mission 1: Magic Brush", text: "Foam brush time!", type: "reps", reps: 3 },
+            { id: "mission_1", title: "Mission 1: Magic Brush", text: "Foam brush time!", type: "auto_reps", reps: 3, delay: 5000 },
             { id: "mission_2", title: "Mission 2: Power Suction", text: "Suction your tongue to the roof of your mouth.", type: "timer", time: 120 },
-            { id: "mission_3", title: "Mission 3: Tiny Oyster", text: "Open and close touching back molars.", type: "reps", reps: 10 },
-            { id: "mission_4", title: "Mission 4: Shape Shifter", text: "Fat -> Skinny -> Fat -> Taco!", type: "reps", reps: 10 },
-            { id: "mission_5", title: "Mission 5: Perfect Bowl", text: "Make a bowl behind your lower teeth.", type: "reps_timer", reps: 10, time: 3 },
-            { id: "mission_6", title: "Mission 6: Water Trap", text: "Spray water, suction up, hold for 3 seconds.", type: "reps_timer", reps: 10, time: 3 },
-            { id: "mission_7", title: "Mission 7: Floating Ball", text: "Blow out mouth to float the ball.", type: "reps", reps: 10 },
+            { id: "mission_3", title: "Mission 3: Tiny Oyster", text: "Open and close touching back molars.", type: "auto_reps", reps: 10, delay: 4000 },
+            { id: "mission_4", title: "Mission 4: Shape Shifter", text: "Fat -> Skinny -> Fat -> Taco!", type: "auto_reps", reps: 10, delay: 6000 },
+            { id: "mission_5", title: "Mission 5: Perfect Bowl", text: "Make a bowl behind your lower teeth.", type: "auto_reps", reps: 10, delay: 6000 },
+            { id: "mission_6", title: "Mission 6: Water Trap", text: "Spray water, suction up, hold for 3 seconds.", type: "auto_reps", reps: 10, delay: 6000 },
+            { id: "mission_7", title: "Mission 7: Floating Ball", text: "Blow out mouth to float the ball.", type: "auto_reps", reps: 10, delay: 4000 },
             { id: "mission_8", title: "Final Mission: Parents Delight", text: "Stick between lips. The active game is over, leave it in for 30 minutes!", type: "info" }
         ];
 
         let currentMission = 0;
-        let currentRep = 1;
         let isTimerRunning = false;
         let audioPlayer = new Audio();
 
@@ -100,21 +100,19 @@
             titleEl.innerText = m.title;
             descEl.innerText = m.text;
             timerEl.style.display = "none";
-            currentRep = 1;
             
             playAudio(m.id);
 
             if (m.type === "info") {
                 btnEl.innerText = "Next Mission";
                 btnEl.onclick = nextMission;
-            } else if (m.type === "reps") {
-                updateRepButton();
+            } else if (m.type === "auto_reps") {
+                btnEl.innerText = "Start Reps!";
+                btnEl.onclick = () => startAutoReps(m.reps, m.delay);
             } else if (m.type === "timer") {
                 btnEl.innerText = `Start ${m.time}s Timer`;
                 btnEl.onclick = () => startTimer(m.time, nextMission);
-            } else if (m.type === "reps_timer") {
-                updateRepTimerButton();
-            }
+            } 
         }
 
         function nextMission() {
@@ -122,33 +120,41 @@
             loadMission();
         }
 
-        function updateRepButton() {
-            let m = missions[currentMission];
-            btnEl.innerText = `Done! (Rep ${currentRep} of ${m.reps})`;
-            btnEl.onclick = () => {
-                playAudio("ding");
-                currentRep++;
-                if (currentRep > m.reps) {
-                    nextMission();
-                } else {
-                    updateRepButton();
+        function startAutoReps(totalReps, delayMs) {
+            btnEl.style.display = "none";
+            timerEl.style.display = "block";
+            let currentRep = 1;
+            
+            function runRep() {
+                if (currentRep > totalReps) {
+                    timerEl.style.display = "none";
+                    playAudio("timer_done");
+                    btnEl.innerText = "Next Mission";
+                    btnEl.style.display = "block";
+                    btnEl.onclick = nextMission;
+                    return;
                 }
-            };
-        }
-
-        function updateRepTimerButton() {
-            let m = missions[currentMission];
-            btnEl.innerText = `Start 3s Hold (Rep ${currentRep} of ${m.reps})`;
-            btnEl.onclick = () => {
-                startTimer(m.time, () => {
-                    currentRep++;
-                    if (currentRep > m.reps) {
-                        nextMission();
+                
+                descEl.innerText = `Doing Rep ${currentRep} of ${totalReps}...`;
+                playAudio(`rep_${currentRep}`);
+                
+                // Set the visual countdown on the screen
+                let timeRemaining = delayMs / 1000;
+                timerEl.innerText = timeRemaining;
+                
+                let interval = setInterval(() => {
+                    timeRemaining--;
+                    if (timeRemaining > 0) {
+                        timerEl.innerText = timeRemaining;
                     } else {
-                        updateRepTimerButton();
+                        clearInterval(interval);
+                        currentRep++;
+                        runRep(); // Automatically trigger the next rep!
                     }
-                });
-            };
+                }, 1000);
+            }
+            
+            runRep();
         }
 
         function startTimer(seconds, callback) {
