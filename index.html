@@ -55,16 +55,16 @@
     </div>
 
     <script>
-        // Note the new "delay" property (in milliseconds) to control how fast the reps go!
+        // The delay properties have been completely removed!
         const missions = [
             { id: "intro", title: "Welcome!", text: "Listen to the instructions.", type: "info" },
-            { id: "mission_1", title: "Mission 1: Magic Brush", text: "Foam brush time!", type: "auto_reps", reps: 3, delay: 5000 },
+            { id: "mission_1", title: "Mission 1: Magic Brush", text: "Foam brush time!", type: "auto_reps", reps: 3 },
             { id: "mission_2", title: "Mission 2: Power Suction", text: "Suction your tongue to the roof of your mouth.", type: "timer", time: 120 },
-            { id: "mission_3", title: "Mission 3: Tiny Oyster", text: "Open and close touching back molars.", type: "auto_reps", reps: 10, delay: 4000 },
-            { id: "mission_4", title: "Mission 4: Shape Shifter", text: "Fat -> Skinny -> Fat -> Taco!", type: "auto_reps", reps: 10, delay: 6000 },
-            { id: "mission_5", title: "Mission 5: Perfect Bowl", text: "Make a bowl behind your lower teeth.", type: "auto_reps", reps: 10, delay: 6000 },
-            { id: "mission_6", title: "Mission 6: Water Trap", text: "Spray water, suction up, hold for 3 seconds.", type: "auto_reps", reps: 10, delay: 6000 },
-            { id: "mission_7", title: "Mission 7: Floating Ball", text: "Blow out mouth to float the ball.", type: "auto_reps", reps: 10, delay: 4000 },
+            { id: "mission_3", title: "Mission 3: Tiny Oyster", text: "Open and close touching back molars.", type: "auto_reps", reps: 10 },
+            { id: "mission_4", title: "Mission 4: Shape Shifter", text: "Fat -> Skinny -> Fat -> Taco!", type: "auto_reps", reps: 10 },
+            { id: "mission_5", title: "Mission 5: Perfect Bowl", text: "Make a bowl behind your lower teeth.", type: "auto_reps", reps: 10 },
+            { id: "mission_6", title: "Mission 6: Water Trap", text: "Spray water, suction up, hold for 3 seconds.", type: "auto_reps", reps: 10 },
+            { id: "mission_7", title: "Mission 7: Floating Ball", text: "Blow out mouth to float the ball.", type: "auto_reps", reps: 10 },
             { id: "mission_8", title: "Final Mission: Parents Delight", text: "Stick between lips. The active game is over, leave it in for 30 minutes!", type: "info" }
         ];
 
@@ -77,8 +77,10 @@
         const btnEl = document.getElementById("action-btn");
         const timerEl = document.getElementById("timer");
 
-        function playAudio(filename) {
+        // The audio player now accepts an optional callback to know exactly when it finishes
+        function playAudio(filename, onComplete) {
             audioPlayer.src = `audio/${filename}.mp3`;
+            audioPlayer.onended = onComplete || null;
             audioPlayer.play();
         }
 
@@ -108,7 +110,7 @@
                 btnEl.onclick = nextMission;
             } else if (m.type === "auto_reps") {
                 btnEl.innerText = "Start Reps!";
-                btnEl.onclick = () => startAutoReps(m.reps, m.delay);
+                btnEl.onclick = () => startAutoReps(m.reps);
             } else if (m.type === "timer") {
                 btnEl.innerText = `Start ${m.time}s Timer`;
                 btnEl.onclick = () => startTimer(m.time, nextMission);
@@ -120,14 +122,12 @@
             loadMission();
         }
 
-        function startAutoReps(totalReps, delayMs) {
+        function startAutoReps(totalReps) {
             btnEl.style.display = "none";
-            timerEl.style.display = "block";
             let currentRep = 1;
             
             function runRep() {
                 if (currentRep > totalReps) {
-                    timerEl.style.display = "none";
                     playAudio("timer_done");
                     btnEl.innerText = "Next Mission";
                     btnEl.style.display = "block";
@@ -136,22 +136,12 @@
                 }
                 
                 descEl.innerText = `Doing Rep ${currentRep} of ${totalReps}...`;
-                playAudio(`rep_${currentRep}`);
                 
-                // Set the visual countdown on the screen
-                let timeRemaining = delayMs / 1000;
-                timerEl.innerText = timeRemaining;
-                
-                let interval = setInterval(() => {
-                    timeRemaining--;
-                    if (timeRemaining > 0) {
-                        timerEl.innerText = timeRemaining;
-                    } else {
-                        clearInterval(interval);
-                        currentRep++;
-                        runRep(); // Automatically trigger the next rep!
-                    }
-                }, 1000);
+                // Play the audio, and the exact moment it finishes, bump the count and loop again!
+                playAudio(`rep_${currentRep}`, () => {
+                    currentRep++;
+                    runRep();
+                });
             }
             
             runRep();
